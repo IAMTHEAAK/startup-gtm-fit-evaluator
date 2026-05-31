@@ -1,12 +1,12 @@
 # GTM Fit Scorer
 
-> Score your startup's GTM readiness across 6 dimensions — with a concrete action plan.
+> Score your startup's GTM readiness across 6 dimensions with a concrete action plan.
 
-**[→ Live Demo](https://iamtheaak.github.io/gtm-fit-scorer)**
+**[→ Live Demo](https://iamtheaak.github.io/startup-gtm-fit-evaluator/)**
 
 ---
 
-Most early-stage startups fail not because the product is bad — but because the GTM is misaligned. Wrong channel for the stage. Untested messaging. ICP that's too broad to convert. This tool scores your GTM strategy before you scale it.
+Most early-stage startups fail not because the product is bad but because the GTM is misaligned. Wrong channel for the stage. Untested messaging. ICP that's too broad to convert. This tool scores your GTM strategy before you scale it.
 
 ## What it scores
 
@@ -38,8 +38,6 @@ Pure HTML, CSS, JavaScript. Canvas API for the radar chart. No dependencies, no 
 ## Why I built this
 
 After running GTM campaigns at Cosmofeed/SuperProfile and studying dozens of early-stage startup failures, I kept seeing the same pattern: founders optimise for tactics (which email template, which ad creative) before fixing strategy (wrong channel, unclear ICP, untested messaging). This tool forces the strategic questions first.
-
-Related: [Cold Email Analyzer](https://github.com/iamtheaak/cold-email-analyzer) — score your outreach emails once you've validated your GTM.
 
 ---
 
