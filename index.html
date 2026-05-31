@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GTM Fit Scorer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Mono:wght@400;500&family=Syne:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#fafaf7;--bg2:#f3f3ee;--bg3:#eaeae4;
+  --border:#e0e0d8;--border2:#ccccc2;
+  --text:#111;--text2:#555;--text3:#999;
+  --accent:#1a1a1a;--green:#1d5c2e;--green-bg:#eaf3de;
+  --amber:#7a4500;--amber-bg:#faeeda;
+  --red:#7a1a1a;--red-bg:#fce8e8;
+  --blue:#0c3a6e;--blue-bg:#e6f0fb;
+  --mono:'DM Mono',monospace;
+  --serif:'Instrument Serif',serif;
+  --sans:'Syne',sans-serif;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:100vh;}
+.page{max-width:860px;margin:0 auto;padding:3rem 1.5rem 5rem;}
+
+/* header */
+.hdr{margin-bottom:3rem;}
+.hdr-tag{font-family:var(--mono);font-size:10px;color:var(--text3);letter-spacing:0.2em;text-transform:uppercase;margin-bottom:12px;display:flex;align-items:center;gap:8px;}
+.hdr-tag::before{content:'';display:inline-block;width:20px;height:1px;background:var(--text3);}
+h1{font-family:var(--serif);font-size:clamp(32px,5vw,52px);font-weight:400;line-height:1.1;margin-bottom:12px;letter-spacing:-0.01em;}
+h1 em{font-style:italic;color:var(--text2);}
+.hdr-sub{font-size:14px;color:var(--text2);line-height:1.7;max-width:520px;font-family:var(--mono);}
+
+/* form */
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:2rem;}
+@media(max-width:600px){.form-grid{grid-template-columns:1fr;}}
+.form-group{display:flex;flex-direction:column;gap:6px;}
+.form-group.full{grid-column:1/-1;}
+label{font-size:11px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:var(--text2);}
+input,select,textarea{
+  background:white;border:1px solid var(--border2);border-radius:6px;
+  font-family:var(--mono);font-size:13px;color:var(--text);
+  padding:10px 14px;outline:none;transition:border-color 0.15s;
+  appearance:none;
+}
+input:focus,select:focus,textarea:focus{border-color:var(--accent);}
+textarea{resize:vertical;min-height:80px;line-height:1.6;}
+select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23999' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;padding-right:36px;cursor:pointer;}
+
+.score-btn{
+  width:100%;padding:18px;background:var(--accent);color:white;
+  font-family:var(--mono);font-size:13px;letter-spacing:0.15em;text-transform:uppercase;
+  border:none;border-radius:8px;cursor:pointer;transition:all 0.15s;margin-bottom:3rem;
+}
+.score-btn:hover{background:#333;transform:translateY(-1px);}
+.score-btn:disabled{background:var(--bg3);color:var(--text3);cursor:not-allowed;transform:none;}
+
+/* results */
+.results{display:none;}
+.results.on{display:block;animation:up 0.5s ease forwards;}
+@keyframes up{from{opacity:0;transform:translateY(20px);}to{opacity:1;transform:translateY(0);}}
+
+/* overall score */
+.overall-card{
+  border:1px solid var(--border2);border-radius:16px;padding:2rem 2.5rem;
+  margin-bottom:2rem;display:grid;grid-template-columns:1fr auto;gap:1.5rem;align-items:center;
+  background:white;
+}
+.oc-label{font-family:var(--mono);font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:var(--text3);margin-bottom:8px;}
+.oc-title{font-family:var(--serif);font-size:28px;margin-bottom:8px;line-height:1.2;}
+.oc-summary{font-size:13px;color:var(--text2);line-height:1.7;max-width:500px;font-family:var(--mono);}
+.oc-score{text-align:center;}
+.oc-num{font-family:var(--mono);font-size:64px;font-weight:500;line-height:1;}
+.oc-denom{font-family:var(--mono);font-size:16px;color:var(--text3);}
+.oc-verdict{font-family:var(--mono);font-size:11px;padding:4px 12px;border-radius:20px;margin-top:8px;display:inline-block;}
+
+/* six pillars */
+.pillars-heading{font-family:var(--mono);font-size:10px;color:var(--text3);letter-spacing:0.2em;text-transform:uppercase;margin-bottom:12px;}
+.pillars-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:2rem;}
+@media(max-width:580px){.pillars-grid{grid-template-columns:1fr 1fr;}}
+.pillar-card{background:white;border:1px solid var(--border);border-radius:12px;padding:1.25rem;transition:border-color 0.2s;}
+.pillar-card:hover{border-color:var(--border2);}
+.pc-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;}
+.pc-name{font-size:13px;font-weight:600;line-height:1.3;}
+.pc-score-pill{font-family:var(--mono);font-size:11px;padding:3px 10px;border-radius:20px;flex-shrink:0;}
+.pc-bar{height:3px;background:var(--bg3);border-radius:2px;overflow:hidden;margin-bottom:8px;}
+.pc-fill{height:100%;border-radius:2px;width:0;transition:width 1s cubic-bezier(0.4,0,0.2,1);}
+.pc-insight{font-size:11px;color:var(--text2);line-height:1.55;font-family:var(--mono);}
+
+/* action plan */
+.action-section{margin-bottom:2rem;}
+.action-heading{font-family:var(--serif);font-size:22px;margin-bottom:1rem;font-style:italic;}
+.action-list{display:flex;flex-direction:column;gap:8px;}
+.action-item{
+  display:grid;grid-template-columns:36px 1fr;gap:12px;
+  background:white;border:1px solid var(--border);border-radius:10px;
+  padding:1rem 1.25rem;align-items:flex-start;
+}
+.action-num{font-family:var(--mono);font-size:11px;color:var(--text3);padding-top:2px;}
+.action-content{}
+.action-title{font-size:13px;font-weight:600;margin-bottom:3px;}
+.action-desc{font-size:12px;color:var(--text2);line-height:1.6;font-family:var(--mono);}
+.action-priority{display:inline-block;margin-top:5px;font-family:var(--mono);font-size:10px;padding:2px 8px;border-radius:3px;}
+
+/* benchmark */
+.bench-section{margin-bottom:2rem;}
+.bench-heading{font-family:var(--mono);font-size:10px;color:var(--text3);letter-spacing:0.2em;text-transform:uppercase;margin-bottom:12px;}
+.bench-list{display:flex;flex-direction:column;gap:1px;border:1px solid var(--border);border-radius:10px;overflow:hidden;}
+.bench-row{
+  display:grid;grid-template-columns:160px 1fr 80px;gap:12px;
+  padding:10px 16px;background:white;align-items:center;
+  border-bottom:1px solid var(--border);font-size:12px;
+}
+.bench-row:last-child{border-bottom:none;}
+.bench-row.header{background:var(--bg2);font-family:var(--mono);font-size:10px;color:var(--text3);letter-spacing:0.05em;}
+.bench-name{font-weight:500;}
+.bench-desc{color:var(--text2);font-family:var(--mono);font-size:11px;}
+.bench-score{font-family:var(--mono);font-weight:500;text-align:right;}
+
+/* radar */
+.radar-wrap{background:white;border:1px solid var(--border);border-radius:12px;padding:1.5rem;margin-bottom:2rem;display:flex;flex-direction:column;align-items:center;}
+.radar-title{font-family:var(--mono);font-size:10px;color:var(--text3);letter-spacing:0.2em;text-transform:uppercase;margin-bottom:1rem;align-self:flex-start;}
+
+/* footer */
+footer{padding-top:2rem;border-top:1px solid var(--border);display:flex;justify-content:space-between;font-family:var(--mono);font-size:10px;color:var(--text3);}
+footer a{color:var(--text2);text-decoration:none;}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <header class="hdr">
+    <div class="hdr-tag">GTM Fit Scorer · v1.0</div>
+    <h1>Is your GTM strategy<br><em>actually ready?</em></h1>
+    <p class="hdr-sub">// fill in your startup's context → get a scored GTM readiness breakdown across 6 dimensions with a concrete action plan</p>
+  </header>
+
+  <div class="form-grid">
+    <div class="form-group">
+      <label>Startup / Product Name</label>
+      <input type="text" id="f-name" placeholder="e.g. OnboardIQ">
+    </div>
+    <div class="form-group">
+      <label>Stage</label>
+      <select id="f-stage">
+        <option value="">Select stage</option>
+        <option value="idea">Idea / Pre-product</option>
+        <option value="mvp">MVP / Beta</option>
+        <option value="early">Early traction (1–50 customers)</option>
+        <option value="growth">Growth (50–500 customers)</option>
+        <option value="scale">Scaling (500+ customers)</option>
+      </select>
+    </div>
+    <div class="form-group full">
+      <label>What does your product do? (one sentence)</label>
+      <input type="text" id="f-product" placeholder="e.g. Automates new hire onboarding paperwork for HR teams at mid-market companies">
+    </div>
+    <div class="form-group full">
+      <label>Who is your ICP? (Ideal Customer Profile)</label>
+      <input type="text" id="f-icp" placeholder="e.g. HR managers at B2B SaaS companies, 50–200 employees, Series A funded">
+    </div>
+    <div class="form-group">
+      <label>Primary GTM channel</label>
+      <select id="f-channel">
+        <option value="">Select channel</option>
+        <option value="outbound">Outbound (cold email / LinkedIn)</option>
+        <option value="inbound">Inbound (SEO / content)</option>
+        <option value="product-led">Product-led growth (PLG)</option>
+        <option value="partnerships">Partnerships / BD</option>
+        <option value="community">Community-led</option>
+        <option value="paid">Paid acquisition</option>
+        <option value="events">Events / conferences</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Business model</label>
+      <select id="f-model">
+        <option value="">Select model</option>
+        <option value="saas">B2B SaaS (subscription)</option>
+        <option value="b2c-sub">B2C Subscription</option>
+        <option value="marketplace">Marketplace</option>
+        <option value="transactional">Transactional / per-use</option>
+        <option value="freemium">Freemium</option>
+        <option value="enterprise">Enterprise / custom pricing</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Do you have a defined messaging / positioning?</label>
+      <select id="f-message">
+        <option value="">Select</option>
+        <option value="yes-tested">Yes — tested with real customers</option>
+        <option value="yes-untested">Yes — written but not tested</option>
+        <option value="draft">Draft / rough idea</option>
+        <option value="no">No defined messaging</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Competitive differentiation clarity</label>
+      <select id="f-diff">
+        <option value="">Select</option>
+        <option value="clear">Very clear — one obvious reason to choose us</option>
+        <option value="moderate">Moderate — some differentiation</option>
+        <option value="weak">Weak — similar to competitors</option>
+        <option value="unknown">Unknown / not mapped yet</option>
+      </select>
+    </div>
+    <div class="form-group full">
+      <label>Current biggest GTM challenge (optional)</label>
+      <textarea id="f-challenge" placeholder="e.g. Getting meetings with enterprise HR, converting free users to paid, unclear which channel to prioritize..."></textarea>
+    </div>
+  </div>
+
+  <button class="score-btn" id="score-btn" onclick="scoreGTM()">→ score my GTM readiness</button>
+
+  <div class="results" id="results">
+
+    <div class="overall-card" id="overall-card">
+      <div>
+        <div class="oc-label">GTM Readiness Score</div>
+        <div class="oc-title" id="oc-title"></div>
+        <div class="oc-summary" id="oc-summary"></div>
+      </div>
+      <div class="oc-score">
+        <div class="oc-num" id="oc-num"></div>
+        <div class="oc-denom">/100</div>
+        <div class="oc-verdict" id="oc-verdict"></div>
+      </div>
+    </div>
+
+    <div class="pillars-heading">six-dimension breakdown</div>
+    <div class="pillars-grid" id="pillars-grid"></div>
+
+    <div class="radar-wrap">
+      <div class="radar-title">visual readiness map</div>
+      <canvas id="radar-canvas" width="340" height="300"></canvas>
+    </div>
+
+    <div class="action-section">
+      <div class="action-heading">Your GTM action plan</div>
+      <div class="action-list" id="action-list"></div>
+    </div>
+
+    <div class="bench-section">
+      <div class="bench-heading">channel-stage fit matrix</div>
+      <div class="bench-list" id="bench-list"></div>
+    </div>
+
+  </div>
+
+  <footer>
+    <span>built by <a href="https://iamtheaak.github.io">iamtheaak</a> · iim bangalore · 2026</span>
+    <span>no data stored · runs locally</span>
+  </footer>
+</div>
+
+<script>
+function scoreGTM(){
+  const name = document.getElementById('f-name').value.trim() || 'Your startup';
+  const stage = document.getElementById('f-stage').value;
+  const product = document.getElementById('f-product').value.trim();
+  const icp = document.getElementById('f-icp').value.trim();
+  const channel = document.getElementById('f-channel').value;
+  const model = document.getElementById('f-model').value;
+  const message = document.getElementById('f-message').value;
+  const diff = document.getElementById('f-diff').value;
+  const challenge = document.getElementById('f-challenge').value.trim();
+
+  if(!stage||!product||!icp||!channel||!model){
+    alert('Please fill in all required fields.');
+    return;
+  }
+
+  const btn = document.getElementById('score-btn');
+  btn.disabled=true; btn.textContent='→ scoring...';
+
+  setTimeout(()=>{
+    const scores = calculateScores(stage,product,icp,channel,model,message,diff,challenge);
+    renderResults(name,scores,stage,channel,model,message,diff,challenge);
+    document.getElementById('results').classList.add('on');
+    document.getElementById('results').scrollIntoView({behavior:'smooth'});
+    btn.disabled=false; btn.textContent='→ score my GTM readiness';
+  },700);
+}
+
+function calculateScores(stage,product,icp,channel,model,message,diff,challenge){
+  // 1. ICP Clarity
+  const icpWords = icp.split(' ').length;
+  const icpSpecifics = (icp.match(/\b(\d+[-–]\d+|B2B|B2C|SaaS|Series|funded|manager|director|VP|head|SMB|enterprise|startup|mid-market)\b/gi)||[]).length;
+  const icpClarity = Math.min(100, 30 + icpWords*3 + icpSpecifics*10);
+
+  // 2. Channel-Market Fit
+  const channelFit = {
+    'outbound': stage==='idea'?50:stage==='mvp'?70:stage==='early'?85:75,
+    'inbound': stage==='idea'?30:stage==='mvp'?50:stage==='early'?65:85,
+    'product-led': stage==='idea'?40:stage==='mvp'?60:stage==='early'?75:85,
+    'partnerships': stage==='idea'?35:stage==='mvp'?55:stage==='early'?70:80,
+    'community': stage==='idea'?45:stage==='mvp'?60:stage==='early'?70:75,
+    'paid': stage==='idea'?25:stage==='mvp'?40:stage==='early'?60:80,
+    'events': stage==='idea'?40:stage==='mvp'?55:stage==='early'?65:70,
+  };
+  const channelScore = channelFit[channel]||55;
+
+  // 3. Message Clarity
+  const msgScore = {
+    'yes-tested':92, 'yes-untested':68, 'draft':42, 'no':18, '':30
+  }[message]||30;
+
+  // 4. Differentiation
+  const diffScore = {
+    'clear':90,'moderate':62,'weak':35,'unknown':20,''  :25
+  }[diff]||25;
+
+  // 5. Stage-Model Fit
+  const modelFit = {
+    'saas':{idea:55,mvp:70,early:82,growth:90,scale:92},
+    'b2c-sub':{idea:50,mvp:65,early:72,growth:80,scale:85},
+    'marketplace':{idea:40,mvp:55,early:65,growth:78,scale:88},
+    'transactional':{idea:60,mvp:72,early:80,growth:85,scale:82},
+    'freemium':{idea:45,mvp:62,early:70,growth:82,scale:88},
+    'enterprise':{idea:30,mvp:45,early:60,growth:75,scale:88},
+  };
+  const modelScore = (modelFit[model]||{})[stage]||55;
+
+  // 6. Distribution leverage (product description signals)
+  const distSignals = ['viral','referral','word of mouth','community','partnership','integration','api','embed','share','invite','waitlist','network effect'];
+  const distHits = distSignals.filter(s=>product.toLowerCase().includes(s)||challenge.toLowerCase().includes(s)).length;
+  const productLen = product.split(' ').length;
+  const distScore = Math.min(100, 30 + distHits*15 + (productLen>8?15:0) + (stage==='growth'||stage==='scale'?20:0));
+
+  const overall = Math.round((icpClarity*1.2 + channelScore*1.1 + msgScore*1.3 + diffScore*1.2 + modelScore*0.9 + distScore*0.8)/6.5);
+
+  return {overall, dims:{
+    icpClarity: Math.round(icpClarity),
+    channelFit: Math.round(channelScore),
+    messageClarity: Math.round(msgScore),
+    differentiation: Math.round(diffScore),
+    stageFit: Math.round(modelScore),
+    distribution: Math.round(distScore)
+  }};
+}
+
+function renderResults(name, scores, stage, channel, model, message, diff, challenge){
+  const s = scores.overall;
+  const verdict = s>=75?'launch-ready':s>=55?'almost there':'not ready yet';
+  const verdictColor = s>=75?'var(--green)':s>=55?'var(--amber)':'var(--red)';
+  const verdictBg = s>=75?'var(--green-bg)':s>=55?'var(--amber-bg)':'var(--red-bg)';
+  const titles = {
+    'launch-ready':`${name} has strong GTM foundations.`,
+    'almost there':`${name} is close — a few critical gaps to close.`,
+    'not ready yet':`${name} needs GTM work before scaling.`
+  };
+  const summaries = {
+    'launch-ready':`Scoring ${s}/100. Your ICP clarity, messaging, and channel selection are aligned with your stage. Focus on execution speed and measuring channel efficiency.`,
+    'almost there':`Scoring ${s}/100. The core thesis is there but 1–2 critical dimensions are holding you back. Fix those before increasing spend on acquisition.`,
+    'not ready yet':`Scoring ${s}/100. GTM fundamentals need attention before you push hard on growth. Going fast on a weak foundation wastes budget and time.`
+  };
+
+  document.getElementById('oc-title').textContent = titles[verdict];
+  document.getElementById('oc-summary').textContent = summaries[verdict];
+  document.getElementById('oc-num').textContent = s;
+  document.getElementById('oc-num').style.color = verdictColor;
+  const vp = document.getElementById('oc-verdict');
+  vp.textContent = verdict;
+  vp.style.background = verdictBg;
+  vp.style.color = verdictColor;
+  vp.style.border = `1px solid ${verdictColor}40`;
+
+  const dimDefs = [
+    {key:'icpClarity',name:'ICP Clarity',insight:{low:'Your ICP definition is too broad. Add company size, title, funding stage, and a pain point.',mid:'ICP is directional. Add 1–2 more qualifiers to improve targeting precision.',high:'Strong ICP definition. You know exactly who you\'re selling to.'}},
+    {key:'channelFit',name:'Channel-Stage Fit',insight:{low:'This channel is mismatched for your current stage. Early-stage companies usually see faster results with direct outbound or community.',mid:'Channel has potential but execution needs to match stage constraints.',high:'Good channel-stage alignment. This channel is proven for your growth phase.'}},
+    {key:'messageClarity',name:'Message Clarity',insight:{low:'No tested messaging is a serious gap. Write and test 3 variants of your one-liner before any paid spend.',mid:'Messaging exists but untested assumptions are risky at scale.',high:'Tested messaging is a major asset. Use it as the base for all channel copy.'}},
+    {key:'differentiation',name:'Differentiation',insight:{low:'No clear differentiation = competing on price or luck. Find and own one specific angle competitors don\'t have.',mid:'Some differentiation but not sharp enough to drive word-of-mouth.',high:'Clear differentiation gives you a story that spreads.'}},
+    {key:'stageFit',name:'Model-Stage Fit',insight:{low:'Your business model creates friction at this stage. Consider a simpler entry point (free trial, pilot, usage-based).',mid:'Reasonable fit — watch for conversion friction as you scale.',high:'Business model aligns well with your current stage. Optimize activation.'}},
+    {key:'distribution',name:'Distribution Leverage',insight:{low:'Product lacks built-in distribution. Add a referral loop, integration, or community angle.',mid:'Some distribution signals. Double down on the highest-leverage one.',high:'Good distribution potential. Build systems to make it compounding.'}},
+  ];
+
+  const grid = document.getElementById('pillars-grid');
+  grid.innerHTML='';
+  const radarValues=[];
+  dimDefs.forEach(d=>{
+    const v = scores.dims[d.key];
+    radarValues.push(v);
+    const level = v>=70?'high':v>=45?'mid':'low';
+    const c = v>=70?'var(--green)':v>=45?'var(--amber)':'var(--red)';
+    const bg = v>=70?'var(--green-bg)':v>=45?'var(--amber-bg)':'var(--red-bg)';
+    grid.innerHTML+=`
+      <div class="pillar-card">
+        <div class="pc-top">
+          <div class="pc-name">${d.name}</div>
+          <span class="pc-score-pill" style="background:${bg};color:${c};border:1px solid ${c}40">${v}</span>
+        </div>
+        <div class="pc-bar"><div class="pc-fill" style="background:${c}" data-w="${v}"></div></div>
+        <div class="pc-insight">${d.insight[level]}</div>
+      </div>`;
+  });
+  setTimeout(()=>{
+    document.querySelectorAll('.pc-fill').forEach(el=>{el.style.width=el.dataset.w+'%';});
+  },50);
+
+  // radar
+  drawRadar(radarValues, dimDefs.map(d=>d.name));
+
+  // action plan
+  const actions = buildActionPlan(scores,stage,channel,model,message,diff,challenge);
+  const al = document.getElementById('action-list');
+  al.innerHTML='';
+  actions.forEach((a,i)=>{
+    const pc = {high:'var(--red)',medium:'var(--amber)',low:'var(--green)'}[a.priority];
+    const pb = {high:'var(--red-bg)',medium:'var(--amber-bg)',low:'var(--green-bg)'}[a.priority];
+    al.innerHTML+=`
+      <div class="action-item">
+        <div class="action-num">0${i+1}</div>
+        <div class="action-content">
+          <div class="action-title">${a.title}</div>
+          <div class="action-desc">${a.desc}</div>
+          <span class="action-priority" style="background:${pb};color:${pc};border:1px solid ${pc}40">${a.priority} priority</span>
+        </div>
+      </div>`;
+  });
+
+  // channel fit matrix
+  const channels = [
+    {name:'Outbound (cold email)',stage:'MVP → Early',fit:{idea:40,mvp:70,early:85,growth:75,scale:60},desc:'High ROI at early stages. Gets harder as company scales.'},
+    {name:'Content / Inbound SEO',stage:'Early → Scale',fit:{idea:25,mvp:45,early:65,growth:85,scale:92},desc:'Compounds over time. Wrong choice for speed.'},
+    {name:'Product-led growth',stage:'MVP → Scale',fit:{idea:35,mvp:60,early:75,growth:88,scale:90},desc:'Needs product maturity. High ceiling when it works.'},
+    {name:'Partnerships & BD',stage:'Early → Growth',fit:{idea:30,mvp:50,early:70,growth:80,scale:85},desc:'Slow to start, high leverage at growth stage.'},
+    {name:'Paid acquisition',stage:'Growth → Scale',fit:{idea:20,mvp:35,early:55,growth:80,scale:88},desc:'Dangerous early. Strong signal amplifier at scale.'},
+  ];
+  const bl = document.getElementById('bench-list');
+  bl.innerHTML=`<div class="bench-row header"><span>Channel</span><span>Best for</span><span>Fit for you</span></div>`;
+  channels.forEach(c=>{
+    const fit = c.fit[stage]||50;
+    const fc = fit>=70?'var(--green)':fit>=50?'var(--amber)':'var(--red)';
+    bl.innerHTML+=`
+      <div class="bench-row">
+        <div class="bench-name">${c.name}</div>
+        <div class="bench-desc">${c.desc}</div>
+        <div class="bench-score" style="color:${fc}">${fit}/100</div>
+      </div>`;
+  });
+}
+
+function buildActionPlan(scores, stage, channel, model, message, diff, challenge){
+  const actions=[];
+  const dims=scores.dims;
+  if(dims.messageClarity<60) actions.push({title:'Write and test 3 messaging variants',desc:'Run a quick landing page or cold email A/B test with different one-liners. Kill two, double down on one. Untested messaging is the most common reason GTM stalls.',priority:'high'});
+  if(dims.icpClarity<65) actions.push({title:'Tighten your ICP to one primary segment',desc:`You're describing an audience, not a buyer. Get to: "[Title] at [Company type] with [X employees] who [trigger event]". The more specific, the easier the outreach.`,priority:'high'});
+  if(dims.differentiation<60) actions.push({title:'Run a competitive positioning exercise',desc:'Map the top 3–5 alternatives your ICP currently uses. Find the one axis where you win clearly. Make that your headline, not a feature list.',priority:'high'});
+  if(dims.distribution<55) actions.push({title:'Add one distribution loop to your product',desc:'Every successful product has a compounding distribution mechanism — referral, integration, co-marketing, or community. Design one loop before scaling paid channels.',priority:'medium'});
+  if(dims.channelFit<65) actions.push({title:'Revalidate your primary channel for this stage',desc:`${channel === 'paid' && (stage==='idea'||stage==='mvp') ? 'Paid acquisition at pre-traction stage burns cash without signal. Shift to outbound or community until you know what converts.' : 'Your channel may be ahead of your current stage. Test one closer-in channel — usually outbound or partnerships — before scaling.'}`,priority:'medium'});
+  if(dims.stageFit<60) actions.push({title:'Introduce a low-friction entry point',desc:'If your model creates commitment friction (annual contracts, long sales cycles) at an early stage, add a trial, pilot, or usage-based tier. Reduce the ask before you scale.',priority:'medium'});
+  actions.push({title:'Define and track 3 GTM metrics weekly',desc:'Pick one activation metric, one channel metric, and one revenue metric. Review them every Monday. Most GTM problems become visible within 2–3 weeks of tracking.',priority:'low'});
+  return actions.slice(0,5);
+}
+
+function drawRadar(values, labels){
+  const canvas = document.getElementById('radar-canvas');
+  const ctx = canvas.getContext('2d');
+  const cx=170, cy=155, r=110;
+  const n=values.length;
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+
+  // grid rings
+  [0.2,0.4,0.6,0.8,1.0].forEach(f=>{
+    ctx.beginPath();
+    for(let i=0;i<n;i++){
+      const angle=(i*2*Math.PI/n)-Math.PI/2;
+      const x=cx+r*f*Math.cos(angle), y=cy+r*f*Math.sin(angle);
+      i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+    }
+    ctx.closePath();
+    ctx.strokeStyle='#e0e0d8';
+    ctx.lineWidth=1;
+    ctx.stroke();
+  });
+
+  // axis lines
+  for(let i=0;i<n;i++){
+    const angle=(i*2*Math.PI/n)-Math.PI/2;
+    ctx.beginPath();
+    ctx.moveTo(cx,cy);
+    ctx.lineTo(cx+r*Math.cos(angle),cy+r*Math.sin(angle));
+    ctx.strokeStyle='#e0e0d8';
+    ctx.lineWidth=1;
+    ctx.stroke();
+  }
+
+  // data polygon
+  ctx.beginPath();
+  values.forEach((v,i)=>{
+    const f=v/100;
+    const angle=(i*2*Math.PI/n)-Math.PI/2;
+    const x=cx+r*f*Math.cos(angle), y=cy+r*f*Math.sin(angle);
+    i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+  });
+  ctx.closePath();
+  ctx.fillStyle='rgba(29,92,46,0.12)';
+  ctx.fill();
+  ctx.strokeStyle='#1d5c2e';
+  ctx.lineWidth=2;
+  ctx.stroke();
+
+  // dots
+  values.forEach((v,i)=>{
+    const f=v/100;
+    const angle=(i*2*Math.PI/n)-Math.PI/2;
+    const x=cx+r*f*Math.cos(angle), y=cy+r*f*Math.sin(angle);
+    ctx.beginPath();
+    ctx.arc(x,y,4,0,2*Math.PI);
+    ctx.fillStyle='#1d5c2e';
+    ctx.fill();
+  });
+
+  // labels
+  ctx.font='10px DM Mono, monospace';
+  ctx.fillStyle='#999';
+  ctx.textAlign='center';
+  const shortLabels=['ICP','Channel','Message','Diff.','Stage Fit','Distribution'];
+  shortLabels.forEach((l,i)=>{
+    const angle=(i*2*Math.PI/n)-Math.PI/2;
+    const lx=cx+(r+22)*Math.cos(angle), ly=cy+(r+22)*Math.sin(angle);
+    ctx.fillText(l,lx,ly+4);
+  });
+}
+</script>
+</body>
+</html>
